@@ -53,9 +53,24 @@ class MainController:
             return
 
         try:
-            self._restore_service.restore_account(account.path, emulator_id)
+            result = self._restore_service.restore_account(
+                account.path,
+                emulator_id,
+                lambda progress: self._window.update_recovery_progress(
+                    progress.account.name,
+                    progress.emulator.name,
+                    progress.step.value,
+                    progress.elapsed_seconds,
+                    progress.message,
+                    progress.progress,
+                ),
+            )
         except Exception as exc:  # noqa: BLE001 - surface restore errors in GUI
             self._window.show_error("恢复失败", str(exc))
+            return
+
+        if not result.success:
+            self._window.show_error("恢复失败", result.reason)
             return
 
         self._window.show_info("恢复完成", f"账号 {account.name} 已恢复到 {emulator_id} 号模拟器。")
