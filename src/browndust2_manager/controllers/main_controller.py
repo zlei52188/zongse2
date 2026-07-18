@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from browndust2_manager.models.account_list_model import AccountListModel
-from browndust2_manager.services.account_scanner import AccountScanner
+from browndust2_manager.services.account_service import AccountService
 from browndust2_manager.services.restore_service import RestoreService
 from browndust2_manager.views.main_window import MainWindow
 
@@ -14,15 +14,15 @@ class MainController:
     def __init__(
         self,
         model: AccountListModel,
-        scanner: AccountScanner,
+        account_service: AccountService,
         restore_service: RestoreService,
         window: MainWindow,
     ) -> None:
         self._model = model
-        self._scanner = scanner
+        self._account_service = account_service
         self._restore_service = restore_service
         self._window = window
-        self._accounts_dir: Path = scanner.default_accounts_dir()
+        self._accounts_dir: Path = account_service.scanner.default_accounts_dir()
 
     def load_default_accounts(self) -> None:
         self._window.set_accounts_dir(self._accounts_dir)
@@ -38,7 +38,7 @@ class MainController:
 
     def refresh_accounts(self) -> None:
         try:
-            accounts = self._scanner.scan(self._accounts_dir)
+            accounts = self._account_service.scan_and_sync(self._accounts_dir)
         except Exception as exc:  # noqa: BLE001 - surface scan errors in GUI
             self._window.show_error("扫描失败", str(exc))
             return

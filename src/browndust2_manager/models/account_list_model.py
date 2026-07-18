@@ -31,15 +31,15 @@ class AccountListModel(QAbstractListModel):
 
         account = self._accounts[index.row()]
         if role == Qt.ItemDataRole.DisplayRole:
-            return account.name
+            return account.account_name
         if role == self.NameRole:
-            return account.name
+            return account.account_name
         if role == self.PathRole:
-            return str(account.path)
+            return str(account.folder_path)
         if role == self.ModifiedAtRole:
             return account.modified_at.strftime("%Y-%m-%d %H:%M:%S")
         if role == Qt.ItemDataRole.ToolTipRole:
-            return f"{account.path}\n修改时间：{account.modified_at:%Y-%m-%d %H:%M:%S}"
+            return f"{account.folder_path}\n修改时间：{account.modified_at:%Y-%m-%d %H:%M:%S}"
         return None
 
     def roleNames(self) -> dict[int, bytes]:  # noqa: N802
@@ -61,5 +61,5 @@ class AccountListModel(QAbstractListModel):
 
     def add_manual_account(self, path: Path) -> None:
         stat = path.stat()
-        account = Account(path.name, path, datetime.fromtimestamp(stat.st_mtime))
+        account = Account(None, path.name, path, datetime.fromtimestamp(stat.st_mtime))
         self.set_accounts([*self._accounts, account])

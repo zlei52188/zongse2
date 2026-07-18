@@ -1,0 +1,10 @@
+# Python 缓存
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# 运行时数据
+accounts.db
+settings.json
+logs/
+backups/
