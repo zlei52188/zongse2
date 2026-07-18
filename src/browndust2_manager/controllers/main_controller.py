@@ -46,6 +46,20 @@ class MainController:
         self._model.set_accounts(accounts)
         self._window.set_status(f"已扫描 {len(accounts)} 个账号。")
 
+    def configure_emulator_dirs(self) -> None:
+        selected = self._window.ask_emulator_dirs(self._restore_service.emulator_dirs())
+        if selected is None:
+            return
+
+        try:
+            self._restore_service.set_emulator_dirs(selected)
+            self._restore_service.save_config()
+        except Exception as exc:  # noqa: BLE001 - surface config errors in GUI
+            self._window.show_error("保存失败", str(exc))
+            return
+
+        self._window.set_status("模拟器数据目录配置已保存。")
+
     def restore_selected_account(self, row: int, emulator_id: int) -> None:
         account = self._model.account_at(row)
         if account is None:
@@ -53,9 +67,13 @@ class MainController:
             return
 
         try:
-            self._restore_service.restore_account(account.path, emulator_id)
+            self._restore_service.restore_account(
+                account.path, emulator_id, log_callback=self._window.append_log
+            )
         except Exception as exc:  # noqa: BLE001 - surface restore errors in GUI
             self._window.show_error("恢复失败", str(exc))
             return
 
-        self._window.show_info("恢复完成", f"账号 {account.name} 已恢复到 {emulator_id} 号模拟器。")
+        self._window.show_info(
+            "恢复完成", f"账号 {account.name} 已恢复到 {emulator_id} 号模拟器。"
+        )
