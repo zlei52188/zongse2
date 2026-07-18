@@ -1,14 +1,15 @@
 # BrownDust2Manager
 
-BrownDust2Manager 是一个面向 Windows 的 PySide6 桌面工程，用于扫描棕色尘埃 2（Brown Dust 2）账号备份目录，并通过左侧账号列表对账号执行恢复操作。
+BrownDust2Manager 是一个面向 Root Android 模拟器的 PySide6 桌面 Root 恢复器，用于扫描棕色尘埃 2（Brown Dust 2）账号备份目录，并通过 ADB Root Shell 恢复账号 shared_prefs。
 
 ## 功能
 
-- 扫描指定账号目录，并列出所有账号文件夹。
-- 左侧账号列表显示账号名称、路径和修改时间。
-- 右键账号弹出菜单，可选择恢复到 1~4 号模拟器。
-- 采用 MVC 分层：Model 管理数据，View 管理界面，Controller 连接交互和业务服务。
-- 预留 `restore_account(account_path, emulator_id)` 作为实际恢复逻辑入口。
+- 仅支持 Root Android 模拟器，并将恢复流程统一收口到 `RootService`。
+- 支持配置 1~4 号模拟器的名称、adb serial 和 BrownDust2 Root 目录。
+- 提供“连接模拟器”“刷新设备”“检测Root”按钮；刷新设备会执行 `adb devices` 并展示设备名称、serial、online/offline 状态、Root 状态和 Android 版本。
+- 恢复时依次检测 Root、停止游戏、删除旧 `shared_prefs`、push 账号 `shared_prefs`、Root Shell 复制、restorecon/chown/chmod、sync 并启动游戏。
+- 日志窗口实时显示 adb 命令、执行结果、错误信息和耗时；进度显示 10%、30%、60%、90%、100%。
+- 采用 MVC 分层：Model 管理账号和模拟器配置，View 管理界面，Controller 连接交互和业务服务。
 
 ## 安装与运行
 

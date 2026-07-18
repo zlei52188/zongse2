@@ -6,8 +6,10 @@ from PySide6.QtWidgets import QApplication
 
 from browndust2_manager.controllers.main_controller import MainController
 from browndust2_manager.models.account_list_model import AccountListModel
+from browndust2_manager.models.emulator_config_model import EmulatorConfigModel
 from browndust2_manager.services.account_scanner import AccountScanner
 from browndust2_manager.services.restore_service import RestoreService
+from browndust2_manager.services.root_service import RootService
 from browndust2_manager.views.main_window import MainWindow
 
 
@@ -17,12 +19,16 @@ def main() -> int:
     app.setApplicationName("BrownDust2Manager")
 
     model = AccountListModel()
+    emulator_model = EmulatorConfigModel()
     scanner = AccountScanner()
-    restore_service = RestoreService()
-    window = MainWindow(model=model)
+    root_service = RootService()
+    restore_service = RestoreService(root_service)
+    window = MainWindow(model=model, emulator_model=emulator_model)
     controller = MainController(
         model=model,
+        emulator_model=emulator_model,
         scanner=scanner,
+        root_service=root_service,
         restore_service=restore_service,
         window=window,
     )
