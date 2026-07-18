@@ -12,8 +12,10 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMenu,
     QMessageBox,
+    QProgressBar,
     QPushButton,
     QStatusBar,
+    QTextEdit,
     QToolBar,
     QVBoxLayout,
     QWidget,
@@ -76,9 +78,19 @@ class MainWindow(QMainWindow):
         left_panel.setMaximumWidth(360)
         layout.addWidget(left_panel)
 
-        detail = QLabel("右键左侧账号，可恢复到 1~4 号模拟器。")
-        detail.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(detail, stretch=1)
+        right_panel = QWidget()
+        right_layout = QVBoxLayout(right_panel)
+        self._current_account_label = QLabel("当前账号：-")
+        self._current_emulator_label = QLabel("当前模拟器：-")
+        self._current_step_label = QLabel("当前步骤：-")
+        self._elapsed_label = QLabel("耗时：0.0s")
+        self._progress = QProgressBar()
+        self._progress.setRange(0, 100)
+        self._log = QTextEdit()
+        self._log.setReadOnly(True)
+        for widget in (self._current_account_label, self._current_emulator_label, self._current_step_label, self._elapsed_label, self._progress, self._log):
+            right_layout.addWidget(widget)
+        layout.addWidget(right_panel, stretch=1)
 
         self.setCentralWidget(root)
         self.setStatusBar(QStatusBar())
@@ -103,6 +115,14 @@ class MainWindow(QMainWindow):
 
     def set_status(self, message: str) -> None:
         self.statusBar().showMessage(message, 6000)
+
+    def update_recovery_progress(self, account: str, emulator: str, step: str, elapsed_seconds: float, message: str, progress: int) -> None:
+        self._current_account_label.setText(f"当前账号：{account}")
+        self._current_emulator_label.setText(f"当前模拟器：{emulator}")
+        self._current_step_label.setText(f"当前步骤：{step}")
+        self._elapsed_label.setText(f"耗时：{elapsed_seconds:.1f}s")
+        self._progress.setValue(progress)
+        self._log.append(message)
 
     def _on_choose_dir_clicked(self) -> None:
         if self._controller:
