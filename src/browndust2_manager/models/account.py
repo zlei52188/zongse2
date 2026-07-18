@@ -12,3 +12,4 @@ class Account:
     name: str
     path: Path
     modified_at: datetime
+    has_shared_prefs: bool

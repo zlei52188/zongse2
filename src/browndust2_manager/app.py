@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QApplication
 from browndust2_manager.controllers.main_controller import MainController
 from browndust2_manager.models.account_list_model import AccountListModel
 from browndust2_manager.services.account_scanner import AccountScanner
+from browndust2_manager.services.folder_opener import FolderOpener
 from browndust2_manager.services.restore_service import RestoreService
 from browndust2_manager.views.main_window import MainWindow
 
@@ -19,11 +20,13 @@ def main() -> int:
     model = AccountListModel()
     scanner = AccountScanner()
     restore_service = RestoreService()
+    folder_opener = FolderOpener()
     window = MainWindow(model=model)
     controller = MainController(
         model=model,
         scanner=scanner,
         restore_service=restore_service,
+        folder_opener=folder_opener,
         window=window,
     )
     window.set_controller(controller)
