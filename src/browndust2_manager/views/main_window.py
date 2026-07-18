@@ -5,15 +5,20 @@ from typing import Protocol
 
 from PySide6.QtCore import QPoint, Qt, Signal
 from PySide6.QtWidgets import (
+    QDialog,
+    QDialogButtonBox,
     QFileDialog,
+    QFormLayout,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QListView,
     QMainWindow,
     QMenu,
     QMessageBox,
     QPushButton,
     QStatusBar,
+    QTextEdit,
     QToolBar,
     QVBoxLayout,
     QWidget,
@@ -26,6 +31,7 @@ class MainControllerProtocol(Protocol):
     def choose_accounts_dir(self) -> None: ...
     def refresh_accounts(self) -> None: ...
     def restore_selected_account(self, row: int, emulator_id: int) -> None: ...
+    def configure_emulator_dirs(self) -> None: ...
 
 
 class MainWindow(QMainWindow):
@@ -59,6 +65,10 @@ class MainWindow(QMainWindow):
         refresh_button.clicked.connect(self._on_refresh_clicked)
         toolbar.addWidget(refresh_button)
 
+        config_button = QPushButton("模拟器目录配置...")
+        config_button.clicked.connect(self._on_config_clicked)
+        toolbar.addWidget(config_button)
+
         root = QWidget()
         layout = QHBoxLayout(root)
 
@@ -76,9 +86,18 @@ class MainWindow(QMainWindow):
         left_panel.setMaximumWidth(360)
         layout.addWidget(left_panel)
 
+        right_panel = QWidget()
+        right_layout = QVBoxLayout(right_panel)
         detail = QLabel("右键左侧账号，可恢复到 1~4 号模拟器。")
         detail.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(detail, stretch=1)
+        right_layout.addWidget(detail)
+
+        self.log_view = QTextEdit()
+        self.log_view.setReadOnly(True)
+        self.log_view.setPlaceholderText("恢复日志会显示在这里。")
+        right_layout.addWidget(QLabel("日志"))
+        right_layout.addWidget(self.log_view, stretch=1)
+        layout.addWidget(right_panel, stretch=1)
 
         self.setCentralWidget(root)
         self.setStatusBar(QStatusBar())
@@ -104,6 +123,48 @@ class MainWindow(QMainWindow):
     def set_status(self, message: str) -> None:
         self.statusBar().showMessage(message, 6000)
 
+    def append_log(self, message: str) -> None:
+        self.log_view.append(message)
+
+    def ask_emulator_dirs(
+        self, emulator_dirs: dict[int, Path]
+    ) -> dict[int, Path] | None:
+        dialog = QDialog(self)
+        dialog.setWindowTitle("配置模拟器数据目录")
+        layout = QFormLayout(dialog)
+        edits: dict[int, QLineEdit] = {}
+        for slot in range(1, 5):
+            row = QWidget(dialog)
+            row_layout = QHBoxLayout(row)
+            row_layout.setContentsMargins(0, 0, 0, 0)
+            edit = QLineEdit(
+                str(
+                    emulator_dirs.get(
+                        slot, Path("/data/data/com.neowizgames.game.browndust2")
+                    )
+                )
+            )
+            browse = QPushButton("浏览...")
+            browse.clicked.connect(
+                lambda checked=False, line_edit=edit: self._browse_data_dir(line_edit)
+            )
+            row_layout.addWidget(edit)
+            row_layout.addWidget(browse)
+            edits[slot] = edit
+            layout.addRow(f"模拟器{slot}", row)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Save
+            | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addRow(buttons)
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return None
+        return {slot: Path(edit.text().strip()) for slot, edit in edits.items()}
+
     def _on_choose_dir_clicked(self) -> None:
         if self._controller:
             self._controller.choose_accounts_dir()
@@ -112,6 +173,19 @@ class MainWindow(QMainWindow):
         if self._controller:
             self._controller.refresh_accounts()
 
+    def _on_config_clicked(self) -> None:
+        if self._controller:
+            self._controller.configure_emulator_dirs()
+
+    def _browse_data_dir(self, line_edit: QLineEdit) -> None:
+        directory = QFileDialog.getExistingDirectory(
+            self,
+            "选择模拟器数据目录",
+            line_edit.text() or str(Path.home()),
+        )
+        if directory:
+            line_edit.setText(directory)
+
     def _show_account_menu(self, position: QPoint) -> None:
         index = self.account_list.indexAt(position)
         if not index.isValid() or self._controller is None:
@@ -119,8 +193,10 @@ class MainWindow(QMainWindow):
 
         menu = QMenu(self)
         for emulator_id in range(1, 5):
-            action = menu.addAction(f"恢复到 {emulator_id} 号模拟器")
+            action = menu.addAction(f"恢复到模拟器{emulator_id}")
             action.triggered.connect(
-                lambda checked=False, row=index.row(), target=emulator_id: self._controller.restore_selected_account(row, target)
+                lambda checked=False, row=index.row(), target=emulator_id: self._controller.restore_selected_account(
+                    row, target
+                )
             )
         menu.exec(self.account_list.viewport().mapToGlobal(position))
