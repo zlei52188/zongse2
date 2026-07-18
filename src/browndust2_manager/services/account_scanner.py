@@ -36,6 +36,7 @@ class AccountScanner:
                     name=child.name,
                     path=child,
                     modified_at=datetime.fromtimestamp(stat.st_mtime),
+                    has_shared_prefs=(child / "shared_prefs").exists(),
                 )
             )
         return sorted(accounts, key=lambda account: account.name.lower())

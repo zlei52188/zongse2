@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Protocol
 
-from PySide6.QtCore import QPoint, Qt, Signal
+from PySide6.QtCore import QModelIndex, QPoint, Qt, Signal
 from PySide6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
@@ -26,6 +26,7 @@ class MainControllerProtocol(Protocol):
     def choose_accounts_dir(self) -> None: ...
     def refresh_accounts(self) -> None: ...
     def restore_selected_account(self, row: int, emulator_id: int) -> None: ...
+    def open_account_folder(self, row: int) -> None: ...
 
 
 class MainWindow(QMainWindow):
@@ -70,13 +71,16 @@ class MainWindow(QMainWindow):
 
         self.account_list = QListView()
         self.account_list.setModel(self._model)
+        self.account_list.setUniformItemSizes(False)
+        self.account_list.setWordWrap(True)
+        self.account_list.doubleClicked.connect(self._on_account_double_clicked)
         self.account_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.account_list.customContextMenuRequested.connect(self._show_account_menu)
         left_layout.addWidget(self.account_list)
         left_panel.setMaximumWidth(360)
         layout.addWidget(left_panel)
 
-        detail = QLabel("右键左侧账号，可恢复到 1~4 号模拟器。")
+        detail = QLabel("左侧会自动扫描账号目录。双击账号可在资源管理器中打开。")
         detail.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(detail, stretch=1)
 
@@ -121,6 +125,12 @@ class MainWindow(QMainWindow):
         for emulator_id in range(1, 5):
             action = menu.addAction(f"恢复到 {emulator_id} 号模拟器")
             action.triggered.connect(
-                lambda checked=False, row=index.row(), target=emulator_id: self._controller.restore_selected_account(row, target)
+                lambda checked=False, row=index.row(), target=emulator_id: (
+                    self._controller.restore_selected_account(row, target)
+                )
             )
         menu.exec(self.account_list.viewport().mapToGlobal(position))
+
+    def _on_account_double_clicked(self, index: QModelIndex) -> None:
+        if index.isValid() and self._controller:
+            self._controller.open_account_folder(index.row())

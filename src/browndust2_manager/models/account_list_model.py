@@ -15,6 +15,7 @@ class AccountListModel(QAbstractListModel):
     NameRole = Qt.ItemDataRole.UserRole + 1
     PathRole = Qt.ItemDataRole.UserRole + 2
     ModifiedAtRole = Qt.ItemDataRole.UserRole + 3
+    SharedPrefsRole = Qt.ItemDataRole.UserRole + 4
 
     def __init__(self) -> None:
         super().__init__()
@@ -31,15 +32,19 @@ class AccountListModel(QAbstractListModel):
 
         account = self._accounts[index.row()]
         if role == Qt.ItemDataRole.DisplayRole:
-            return account.name
+            status = "存在" if account.has_shared_prefs else "不存在"
+            return f"{account.name}\n最后修改：{account.modified_at:%Y-%m-%d %H:%M:%S}\nshared_prefs：{status}"
         if role == self.NameRole:
             return account.name
         if role == self.PathRole:
             return str(account.path)
         if role == self.ModifiedAtRole:
             return account.modified_at.strftime("%Y-%m-%d %H:%M:%S")
+        if role == self.SharedPrefsRole:
+            return account.has_shared_prefs
         if role == Qt.ItemDataRole.ToolTipRole:
-            return f"{account.path}\n修改时间：{account.modified_at:%Y-%m-%d %H:%M:%S}"
+            status = "存在" if account.has_shared_prefs else "不存在"
+            return f"{account.path}\n修改时间：{account.modified_at:%Y-%m-%d %H:%M:%S}\nshared_prefs：{status}"
         return None
 
     def roleNames(self) -> dict[int, bytes]:  # noqa: N802
@@ -47,6 +52,7 @@ class AccountListModel(QAbstractListModel):
             self.NameRole: b"name",
             self.PathRole: b"path",
             self.ModifiedAtRole: b"modified_at",
+            self.SharedPrefsRole: b"has_shared_prefs",
         }
 
     def set_accounts(self, accounts: Sequence[Account]) -> None:
@@ -61,5 +67,10 @@ class AccountListModel(QAbstractListModel):
 
     def add_manual_account(self, path: Path) -> None:
         stat = path.stat()
-        account = Account(path.name, path, datetime.fromtimestamp(stat.st_mtime))
+        account = Account(
+            path.name,
+            path,
+            datetime.fromtimestamp(stat.st_mtime),
+            (path / "shared_prefs").exists(),
+        )
         self.set_accounts([*self._accounts, account])
