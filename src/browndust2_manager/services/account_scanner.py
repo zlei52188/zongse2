@@ -30,12 +30,33 @@ class AccountScanner:
         for child in root.iterdir():
             if not child.is_dir() or child.name.startswith("."):
                 continue
-            stat = child.stat()
-            accounts.append(
-                Account(
-                    name=child.name,
-                    path=child,
-                    modified_at=datetime.fromtimestamp(stat.st_mtime),
-                )
-            )
+            accounts.append(self.account_from_folder(child))
         return sorted(accounts, key=lambda account: account.name.lower())
+
+    def account_from_folder(self, folder: Path) -> Account:
+        """从账号文件夹构造账号对象并提取基础版本字段。"""
+        stat = folder.stat()
+        xml_text = "\n".join(path.read_text(encoding="utf-8", errors="ignore") for path in (folder / "shared_prefs").glob("*.xml")) if (folder / "shared_prefs").is_dir() else ""
+        return Account(
+            id=None,
+            account_name=folder.name,
+            folder_path=folder,
+            modified_at=datetime.fromtimestamp(stat.st_mtime),
+            unity_cloud_userid=self._extract_value(xml_text, "unity_cloud_userid"),
+            game_data_version=self._extract_value(xml_text, "game_data_version"),
+            bundle_version=self._extract_value(xml_text, "bundle_version"),
+            build_player_version=self._extract_value(xml_text, "BuildPlayerVersion"),
+            status="正常" if (folder / "shared_prefs").is_dir() else "缺少shared_prefs",
+        )
+
+    def _extract_value(self, text: str, key: str) -> str:
+        """用轻量方式从 shared_prefs XML 文本提取字段。"""
+        marker = f'name="{key}"'
+        index = text.find(marker)
+        if index == -1:
+            return ""
+        tail = text[index:index + 300]
+        if ">" not in tail:
+            return ""
+        value = tail.split(">", 1)[1].split("<", 1)[0].strip()
+        return value
